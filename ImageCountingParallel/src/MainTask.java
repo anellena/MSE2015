@@ -9,13 +9,13 @@ public class MainTask extends Thread
 	private int objectCounter = 0;
 	private int taskCounter = 0;
 	private ImageProcessing imageProcessor;
-	private Semaphore lock;
+	private Semaphore communicationLock;
 
 	public MainTask(SystemT systemT, Task task[])
 	{
 		this.systemT = systemT;
 		this.task = task;
-		this.lock = new Semaphore(1);
+		this.communicationLock = new Semaphore(1);
 	}
 	
 	public void run()
@@ -58,41 +58,26 @@ public class MainTask extends Thread
 			notifyAll(); 
 		}
 		System.out.println(systemT);
-		System.out.println("The image has: " + objectCounter + "objects.");
+		System.out.println("The image has: " + objectCounter + " objects.");
 		System.out.println("Ending MainTask");
-		Thread.yield();
 	}
 	
 	public synchronized void receiveCount(int index, int objectCount)
 	{
-		objectCounter += objectCount;
-		taskCounter++;
-	}
-	
-	public synchronized void sendImageRange(int index, BufferedImage image)
-	{
-		// TODO - improve logic for this
-		/*if (index == 0) {
-			task[index].receiveRange(image, 0, 1023, 0, 767);
-		} else if (index == 1) {
-			task[index].receiveRange(image, 1024, 2047, 0, 767);
-		} else if (index == 2) {
-			task[index].receiveRange(image, 2048, 3071, 0, 767);
-		} else if (index == 3) {
-			task[index].receiveRange(image, 0, 1023, 768, 1535);
-		} else if (index == 4) {
-			task[index].receiveRange(image, 1024, 2047, 768, 1535);
-		} else if (index == 5) {
-			task[index].receiveRange(image, 2048, 3071, 768, 1535);
-		}*/
 		try{
-			this.lock.acquire();
+			this.communicationLock.acquire();
 		}
 		catch (InterruptedException e){
 			System.out.println(String.format("Fatal error: main task interrupted!"));
 		}
+		objectCounter += objectCount;
+		taskCounter++;
+		this.communicationLock.release();
+	}
+	
+	public synchronized void sendImageRange(int index, BufferedImage image)
+	{
 		task[index].receiveRange(image);
-		this.lock.release();
 	}
 	
 	public String toString()

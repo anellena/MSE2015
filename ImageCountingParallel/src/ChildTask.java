@@ -10,9 +10,17 @@ public class ChildTask extends Thread
 	private int motherTaskIndex;
 	private int index;
 	private int objectCounter = 0;
-	private Semaphore lock;
-	private ImageProcessing imageProcessor;
+	private Semaphore workingLock;
 	private BufferedImage image;
+
+	public ChildTask(int index, Task motherTask, int motherIndex)
+	{
+		this.motherTask = motherTask;
+		this.motherTaskIndex = motherIndex;
+		this.index = index;
+		this.workingLock = new Semaphore(1);
+		this.childAcquire();
+	}
 	
 	public void run()
 	{
@@ -34,28 +42,9 @@ public class ChildTask extends Thread
 		System.out.println("Counted " + objectCounter + " objects at task: " + index);
 		sendCount();
 		System.out.println("Ending ChildTask" + index);
-		Thread.yield();
 	}
 	
 
-	private void childAcquire(){
-		try{
-			this.lock.acquire();
-		}
-		catch (InterruptedException e) {
-			System.out.println(String.format("Fatal error on child task id: %d", this.index));
-		}
-	}
-	
-	public ChildTask(int index, Task motherTask, int motherIndex)
-	{
-		this.motherTask = motherTask;
-		this.motherTaskIndex = motherIndex;
-		this.index = index;
-		this.lock = new Semaphore(1);
-		this.childAcquire();
-	}
-	
 	public synchronized void sendCount()
 	{
 		motherTask.receiveCount(index, objectCounter);
@@ -64,6 +53,15 @@ public class ChildTask extends Thread
 	public synchronized void receiveRange(BufferedImage finalImage)
 	{
 		this.image = finalImage;
-		this.lock.release();
+		this.workingLock.release();
 	}
+	private void childAcquire(){
+		try{
+			this.workingLock.acquire();
+		}
+		catch (InterruptedException e) {
+			System.out.println(String.format("Fatal error on child task id: %d", this.index));
+		}
+	}
+	
 }

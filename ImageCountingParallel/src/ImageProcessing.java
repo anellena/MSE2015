@@ -140,19 +140,19 @@ public class ImageProcessing
     	    	    	finalImage.setRGB(x, y+678, initialImage.getRGB(x, y));
     	    	} else if ((y < 768) && (x < 2048)) {
     	    		if(initialImage.getRGB(x, y) == 0xFF000000)
-    	    	    	finalImage.setRGB(x, y+678, initialImage.getRGB(x, y));
+    	    	    	finalImage.setRGB(x, y+768, initialImage.getRGB(x, y));
     	    	} else if (y < 768) {
     	    		if(initialImage.getRGB(x, y) == 0xFF000000)
-    	    	    	finalImage.setRGB(x, y+678, initialImage.getRGB(x, y));
+    	    	    	finalImage.setRGB(x, y+768, initialImage.getRGB(x, y));
     	    	}
     	    	
     	    	//green arrow
     	    	if ((y > 767) && (x < 1024)) {
     	    		if(initialImage.getRGB(x, y) == 0xFF000000)
-    	    	    	finalImage.setRGB(x+1024, y-678, initialImage.getRGB(x, y));
+    	    	    	finalImage.setRGB(x+1024, y-768, initialImage.getRGB(x, y));
     	    	} else if ((y > 767) && (x < 2048)) {
     	    		if(initialImage.getRGB(x, y) == 0xFF000000)
-    	    	    	finalImage.setRGB(x+1024, y-678, initialImage.getRGB(x, y));
+    	    	    	finalImage.setRGB(x+1024, y-768, initialImage.getRGB(x, y));
     	    	}
     	    	
     	    	//red arrow
