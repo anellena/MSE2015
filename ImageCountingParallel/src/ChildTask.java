@@ -3,6 +3,8 @@ import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import java.util.concurrent.Semaphore;
+import java.awt.Point;
+import java.util.ArrayList;
 
 public class ChildTask extends Thread 
 {
@@ -30,18 +32,26 @@ public class ChildTask extends Thread
 		//objectCounter = imageProcessor.ObjectsCount(image);
 		String filename = "image" + index + "" + motherTaskIndex + ".png";
 		try {
-			  File outputfile = new File(filename);
-			  ImageIO.write(image, "png", outputfile);
-		  }
-		  catch (IOException e)
-		  {
+			File outputfile = new File(filename);
+			ImageIO.write(image, "png", outputfile);
+		}
+		catch (IOException e){
 		     // log the exception
 		     // re-throw if desired
-		  }
+		}
 		
-		System.out.println("Counted " + objectCounter + " objects at task: " + index);
+		if (this.index == 0 && this.motherTaskIndex == 0){
+			ArrayList<ArrayList<Point>> bordersList = new ArrayList<ArrayList<Point>>();
+			objectCounter = ImageProcessing.ObjectsCount(image, bordersList);
+			System.out.println("Counted " + objectCounter + " objects at task: " + index + " of mother " + this.motherTaskIndex);
+			for (int i = 0; i < bordersList.size(); i++){
+				System.out.println("Number of borders: " + bordersList.get(i).size());	
+			}
+			System.out.println(bordersList);
+		}
+		
 		sendCount();
-		System.out.println("Ending ChildTask" + index);
+		//System.out.println("Ending ChildTask" + index);
 	}
 	
 

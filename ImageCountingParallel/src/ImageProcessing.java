@@ -55,45 +55,40 @@ public class ImageProcessing
 				Point neighbor = new Point(x,y);
 				neighborsList.add(neighbor);
 	    	    image.setRGB(x, y, 0xff1493);
-    			if (IsBorder (currentPixel, image.getWidth(), image.getHeight())) {
-  	    			bordersList.add(currentPixel);
-  	    		}
 			}
 		}
 	}
+	if (IsBorder (currentPixel, image.getWidth(), image.getHeight())) {
+			bordersList.add(currentPixel);
+	}
   }	
   
-  public int ObjectsCount(BufferedImage image, ArrayList<Point> bordersList)
+  public static int ObjectsCount(BufferedImage image, ArrayList<ArrayList<Point>> bordersList)
   {
 	  int count=0;
-//	  int countMoreThanOneSegment=0;
-//	  ArrayList <Point> bordersList;
-	  ArrayList <Point> neighborsList;
-	 
+	  ArrayList <Point> borders = new ArrayList <Point>();
 	  //System.out.println("Image height: " + image.getHeight() + " Image width: " + image.getWidth());
-	  
 	  for (int y = 0; y < image.getHeight(); y++) {
   	    for (int x = 0; x < image.getWidth(); x++) {
   	    	if(image.getRGB(x, y) == 0xFF000000) {
   	    		count++;
   	    		image.setRGB(x, y, 0xff1493);
   	    		Point currentPixel = new Point(x,y);
-  	    		neighborsList = new ArrayList<Point>();
-  	    		bordersList = new ArrayList<Point>();
-  	    	    GetNeighborList(currentPixel, image, neighborsList, bordersList);
+  	    		ArrayList <Point> neighborsList = new ArrayList<Point>();
+  	    	    GetNeighborList(currentPixel, image, neighborsList, borders);
   	    		while (!neighborsList.isEmpty()) {
   	    			//Get always first element to get its neighbors
   	    			currentPixel = neighborsList.get(0);
   	    			neighborsList.remove(0);
-  	  	    		GetNeighborList(currentPixel, image, neighborsList, bordersList);
+  	  	    		GetNeighborList(currentPixel, image, neighborsList, borders);
   	    		}
-//  	   		if (!bordersList.isEmpty()) {
-//  	    			countMoreThanOneSegment++;
-//  	    		}
+  	    	    if (!borders.isEmpty()){
+  	    	    	bordersList.add(borders);
+  	    	    	borders = new ArrayList <Point>();
+  	    	    }
   	    	}
   	    }
   	  }
-	  
 	  System.out.println("The image has: " + count + "objects.");
 	  
 	  return count;
