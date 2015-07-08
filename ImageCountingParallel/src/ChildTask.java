@@ -8,56 +8,45 @@ import java.util.ArrayList;
 
 public class ChildTask extends Thread 
 {
-	private Task motherTask;
 	private int motherTaskIndex;
 	private int index;
 	private int objectCounter = 0;
-	private Semaphore workingLock;
+	private Semaphore workingLock, communicationLock, finishLock;
 	private BufferedImage image;
+	private ArrayList<ArrayList<Point>> bordersList;
 
-	public ChildTask(int index, Task motherTask, int motherIndex)
+	public ChildTask(int motherIndex, int index)
 	{
-		this.motherTask = motherTask;
 		this.motherTaskIndex = motherIndex;
 		this.index = index;
+		this.bordersList = new ArrayList<ArrayList<Point>>();
 		this.workingLock = new Semaphore(1);
-		this.childAcquire();
+		this.communicationLock = new Semaphore(1);
+		this.finishLock = new Semaphore(1);
+		this.childAcquire(this.workingLock);
+		this.childAcquire(this.communicationLock);
+		this.childAcquire(this.finishLock);
 	}
 	
 	public void run()
 	{
-		System.out.println("Start ChildTask" + index);
-		this.childAcquire();
+		System.out.println("Start ChildTask " + index);
+		this.childAcquire(this.workingLock);
 		
-//		String filename = "image" + index + "" + motherTaskIndex + ".png";
-//		try {
-//			File outputfile = new File(filename);
-//			ImageIO.write(image, "png", outputfile);
-//		}
-//		catch (IOException e){
-		     // log the exception
-		     // re-throw if desired
-//		}
-		
+		this.saveFile();
 		//This if is here for limiting to only, remove
 		if (this.index == 0 && this.motherTaskIndex == 0){
-			ArrayList<ArrayList<Point>> bordersList = new ArrayList<ArrayList<Point>>();
-			objectCounter = ImageProcessing.ObjectsCount(image, bordersList);
-			System.out.println("Counted " + objectCounter + " objects at task: " + index + " of mother " + this.motherTaskIndex);
-			for (int i = 0; i < bordersList.size(); i++){
-				System.out.println("Number of borders: " + bordersList.get(i).size());	
-			}
-			System.out.println(bordersList);
+			this.countChildTaskObjects();
 		}
 		
 		sendCount();
 		//System.out.println("Ending ChildTask" + index);
 	}
 	
-
+	
 	public synchronized void sendCount()
 	{
-		motherTask.receiveCount(index, objectCounter);
+		TaskHolder.getTaskByIndex(this.motherTaskIndex).receiveCount(this.index, this.objectCounter);
 	}
 	
 	public synchronized void receiveRange(BufferedImage finalImage)
@@ -65,13 +54,58 @@ public class ChildTask extends Thread
 		this.image = finalImage;
 		this.workingLock.release();
 	}
-	private void childAcquire(){
+	
+	private void childAcquire(Semaphore lock){
 		try{
-			this.workingLock.acquire();
+			lock.acquire();
 		}
 		catch (InterruptedException e) {
-			System.out.println(String.format("Fatal error on child task id: %d", this.index));
+			System.out.println("Fatal error on child task id: " + this.index);
 		}
+	}
+	
+	private void saveFile(){
+		String filename = "image" + motherTaskIndex + "" + index + ".png";
+		try {
+			File outputfile = new File(filename);
+			ImageIO.write(image, "png", outputfile);
+		}
+		catch (IOException e){
+			//log the exception
+			//re-throw if desired
+		}		
+	}
+	
+	private void countChildTaskObjects(){
+		objectCounter = ImageProcessing.ObjectsCount(image, this.bordersList);
+		System.out.println("Counted " + objectCounter + " objects at task: " + index + " of mother " + this.motherTaskIndex);
+		for (int i = 0; i < this.bordersList.size(); i++){
+			System.out.println("Number of borders: " + this.bordersList.get(i).size());	
+		}
+		System.out.println(this.bordersList);
+		
+		// We are ready to communicate with other threads
+		this.communicationLock.release();
+	}
+	
+	private boolean checkBorders(int x){
+		this.childAcquire(this.communicationLock);
+		for (int i = 0; i < this.bordersList.size(); i++){
+			ArrayList<Point> currentList = this.bordersList.get(i); 
+			for (int j = 0; j < currentList.size(); j++){
+				Point currentPoint = currentList.get(j); 
+				if(currentPoint.x == x && currentPoint.y == 0){
+					this.communicationLock.release();
+					return true;
+				}
+			}
+		}
+		this.communicationLock.release();
+		return false;
+	}
+	
+	private void searchForObjectsOnOtherChildTasks(){
+		
 	}
 	
 }

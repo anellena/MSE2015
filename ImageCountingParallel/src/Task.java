@@ -4,8 +4,6 @@ import java.util.concurrent.Semaphore;
 
 public class Task extends Thread
 {
-	private MainTask mainTask;
-	private ChildTask childTask[];
 	private int index;
 	private int objectCounter = 0;
 	private int taskCounter = 0;
@@ -13,10 +11,8 @@ public class Task extends Thread
 	private ImageProcessing imageProcessor;
 	private Semaphore workingLock, communicationLock;
 
-	public Task(int index, MainTask mainTask, ChildTask childTask[])
+	public Task(int index)
 	{
-		this.mainTask = mainTask;
-		this.childTask = childTask;
 		this.index = index;
 		this.workingLock = new Semaphore(1);
 		this.communicationLock = new Semaphore(1);
@@ -25,20 +21,21 @@ public class Task extends Thread
 	
 	public void run()
 	{
-		System.out.println("Start Task" + index);
+		System.out.println("Start Task " + this.index);
 		this.taskAcquire(this.workingLock);
 		
 		BufferedImage[][] slices = new BufferedImage[1][6];
 		imageProcessor = new ImageProcessing();
 		slices = imageProcessor.DivideImage(image, 1, 6);
-		for(int index = (this.index*6); index < ((this.index*6) + 6); index++) {
-			sendImageRange(index, slices[0][this.index]);
-			childTask[index].start();
+		for(int i = 0; i < 6; i++) {
+			int childIndex = (this.index*6) + i;
+			sendImageRange(childIndex, slices[0][i]);
+			TaskHolder.getChildTaskByIndex(childIndex).start();
 		}
 		
-		for(int index = (this.index*6); index < ((this.index*6) + 6); index++) {
+		for(int i = (this.index*6); i < ((this.index*6) + 6); i++) {
 			try {
-				childTask[index].join();
+				TaskHolder.getChildTaskByIndex(i).join();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -52,7 +49,7 @@ public class Task extends Thread
 	
 	public synchronized void sendCount()
 	{
-		mainTask.receiveCount(index, objectCounter);
+		TaskHolder.getMainTask().receiveCount(index, objectCounter);
 	}
 	
 	public synchronized void receiveRange(BufferedImage finalImage)
@@ -71,7 +68,7 @@ public class Task extends Thread
 	
 	public synchronized void sendImageRange(int index, BufferedImage image)
 	{
-		childTask[index].receiveRange(image);
+		TaskHolder.getChildTaskByIndex(index).receiveRange(image);
 	}
 	
 	public String toString()
@@ -84,7 +81,7 @@ public class Task extends Thread
 			lock.acquire();
 		}
 		catch (InterruptedException e) {
-			System.out.println(String.format("Fatal error on task id: %d", this.index));
+			System.out.println("Fatal error on task id: %d" + this.index);
 		}
 	}
 
