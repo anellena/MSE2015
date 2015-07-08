@@ -1,6 +1,7 @@
 
 import java.awt.image.BufferedImage;
 import java.awt.*;
+import java.util.concurrent.Semaphore;
 
 public class Task extends Thread
 {
@@ -8,22 +9,23 @@ public class Task extends Thread
 	private ChildTask childTask[] = new ChildTask[6];;
 	private int index;
 	private int taskCounter = 0;
-	private boolean startImageComputation = false;
 	private int objectCounter = 0;
 	private BufferedImage image;
 	private ImageProcessing imageProcessor;
+	private Semaphore lock;
 
 	public Task(int index, MainTask mainTask)
 	{
 		this.mainTask = mainTask;
 		this.index = index;
+		this.lock = new Semaphore(1);
+		this.taskAcquire();
 	}
 	
 	public void run()
 	{
 		System.out.println("Start Task" + index);
-		Thread.yield();
-		while(!startImageComputation);
+		this.taskAcquire();
 		
 		//objectCounter = imageProcessor.ObjectsCount(image);
 		for(int i = 0; i < childTask.length; i++) {
@@ -52,7 +54,6 @@ public class Task extends Thread
 		System.out.println("Counted " + objectCounter + " objects at task: " + index);
 		sendCount();
 		System.out.println("Ending Task" + index);
-		Thread.yield();
 	}
 	
 	public synchronized void sendCount()
@@ -62,8 +63,8 @@ public class Task extends Thread
 	
 	public synchronized void receiveRange(BufferedImage finalImage)
 	{
-		this.startImageComputation = true;
 		this.image = finalImage;
+		this.lock.release();
 	}
 	
 	public synchronized void receiveCount(int index, int objectCount)
@@ -81,4 +82,14 @@ public class Task extends Thread
 	{
 		return "\nTask_" + index ;
 	}
+
+	private void taskAcquire(){
+		try{
+			this.lock.acquire();
+		}
+		catch (InterruptedException e) {
+			System.out.println(String.format("Fatal error on task id: %d", this.index));
+		}
+	}
+
 }

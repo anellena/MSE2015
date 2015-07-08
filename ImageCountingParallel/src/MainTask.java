@@ -1,7 +1,6 @@
 
 import java.awt.image.BufferedImage;
-import java.awt.*;
-
+import java.util.concurrent.Semaphore;
 
 public class MainTask extends Thread
 {
@@ -10,11 +9,13 @@ public class MainTask extends Thread
 	private int objectCounter = 0;
 	private int taskCounter = 0;
 	private ImageProcessing imageProcessor;
+	private Semaphore lock;
 
 	public MainTask(SystemT systemT, Task task[])
 	{
 		this.systemT = systemT;
 		this.task = task;
+		this.lock = new Semaphore(1);
 	}
 	
 	public void run()
@@ -45,8 +46,12 @@ public class MainTask extends Thread
 		
 		try
 		{ 
-			while(taskCounter < task.length) 
-				Thread.sleep(500);
+			System.out.println("Waiting for children!");
+			for(int i = 0; i < task.length; i++){
+				System.out.println(String.format("Waiting for child %d!", i));
+				task[i].join();
+				System.out.println(String.format("Child %d finished!", i));
+			}
 		}	
 		catch(InterruptedException e) 
 		{ 
@@ -80,8 +85,14 @@ public class MainTask extends Thread
 		} else if (index == 5) {
 			task[index].receiveRange(image, 2048, 3071, 768, 1535);
 		}*/
-		
+		try{
+			this.lock.acquire();
+		}
+		catch (InterruptedException e){
+			System.out.println(String.format("Fatal error: main task interrupted!"));
+		}
 		task[index].receiveRange(image);
+		this.lock.release();
 	}
 	
 	public String toString()
