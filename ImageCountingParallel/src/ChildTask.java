@@ -29,17 +29,17 @@ public class ChildTask extends Thread
 		System.out.println("Start ChildTask" + index);
 		this.childAcquire();
 		
-		//objectCounter = imageProcessor.ObjectsCount(image);
-		String filename = "image" + index + "" + motherTaskIndex + ".png";
-		try {
-			File outputfile = new File(filename);
-			ImageIO.write(image, "png", outputfile);
-		}
-		catch (IOException e){
+//		String filename = "image" + index + "" + motherTaskIndex + ".png";
+//		try {
+//			File outputfile = new File(filename);
+//			ImageIO.write(image, "png", outputfile);
+//		}
+//		catch (IOException e){
 		     // log the exception
 		     // re-throw if desired
-		}
+//		}
 		
+		//This if is here for limiting to only, remove
 		if (this.index == 0 && this.motherTaskIndex == 0){
 			ArrayList<ArrayList<Point>> bordersList = new ArrayList<ArrayList<Point>>();
 			objectCounter = ImageProcessing.ObjectsCount(image, bordersList);

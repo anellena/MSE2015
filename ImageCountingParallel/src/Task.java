@@ -5,7 +5,7 @@ import java.util.concurrent.Semaphore;
 public class Task extends Thread
 {
 	private MainTask mainTask;
-	private ChildTask childTask[] = new ChildTask[6];;
+	private ChildTask childTask[];
 	private int index;
 	private int objectCounter = 0;
 	private int taskCounter = 0;
@@ -13,9 +13,10 @@ public class Task extends Thread
 	private ImageProcessing imageProcessor;
 	private Semaphore workingLock, communicationLock;
 
-	public Task(int index, MainTask mainTask)
+	public Task(int index, MainTask mainTask, ChildTask childTask[])
 	{
 		this.mainTask = mainTask;
+		this.childTask = childTask;
 		this.index = index;
 		this.workingLock = new Semaphore(1);
 		this.communicationLock = new Semaphore(1);
@@ -27,23 +28,17 @@ public class Task extends Thread
 		System.out.println("Start Task" + index);
 		this.taskAcquire(this.workingLock);
 		
-		//objectCounter = imageProcessor.ObjectsCount(image);
-		for(int i = 0; i < childTask.length; i++) {
-			childTask[i] = new ChildTask(i, this, index);
-		}
-		
 		BufferedImage[][] slices = new BufferedImage[1][6];
 		imageProcessor = new ImageProcessing();
 		slices = imageProcessor.DivideImage(image, 1, 6);
-		for(int index = 0; index < childTask.length; index++) {
-			// TODO - IMPROVE
-			sendImageRange(index, slices[0][index]);
+		for(int index = (this.index*6); index < ((this.index*6) + 6); index++) {
+			sendImageRange(index, slices[0][this.index]);
 			childTask[index].start();
 		}
 		
-		for (int i = 0; i < childTask.length; i++){
+		for(int index = (this.index*6); index < ((this.index*6) + 6); index++) {
 			try {
-				childTask[i].join();
+				childTask[index].join();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
