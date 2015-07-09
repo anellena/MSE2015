@@ -1,6 +1,12 @@
 
+import java.awt.Point;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
+
+import javax.imageio.ImageIO;
 
 public class Task extends Thread
 {
@@ -10,10 +16,14 @@ public class Task extends Thread
 	private BufferedImage image;
 	private ImageProcessing imageProcessor;
 	private Semaphore workingLock, communicationLock;
+	final int HORIZONTAL = 0;
+	final int VERTICAL = 0;
+	private ArrayList<ArrayList<Point>> bordersList;
 
 	public Task(int index)
 	{
 		this.index = index;
+		this.bordersList = new ArrayList<ArrayList<Point>>();
 		this.workingLock = new Semaphore(1);
 		this.communicationLock = new Semaphore(1);
 		this.taskAcquire(workingLock);
@@ -26,7 +36,7 @@ public class Task extends Thread
 		
 		BufferedImage[][] slices = new BufferedImage[1][6];
 		imageProcessor = new ImageProcessing();
-		slices = imageProcessor.DivideImage(image, 1, 6);
+		slices = imageProcessor.DivideImage(image, 1, 6);	
 		for(int i = 0; i < 6; i++) {
 			int childIndex = (this.index*6) + i;
 			sendImageRange(childIndex, slices[0][i]);
@@ -42,9 +52,62 @@ public class Task extends Thread
 			}
 		}
 		
+		int localCounter = imageProcessor.ObjectsCount(image, bordersList);
+	    this.searchForObjectsOnOtherTasks();
+		
 		System.out.println("Counted " + objectCounter + " objects at task: " + index);
 		sendCount();
 		System.out.println("Ending Task" + index);
+	}
+	
+	private void searchForObjectsOnOtherTasks(){
+		//System.out.println("Starting count: " + this.objectCounter);
+		for (int i = 0; i < this.bordersList.size(); i++){
+			ArrayList<Point> currentList = this.bordersList.get(i); 
+			for (int j = 0; j < currentList.size(); j++){
+				Point currentPoint = currentList.get(j);
+				if (this.index%2 == 0) {
+					if (TaskHolder.getTaskByIndex(this.index + 1).checkBorders(currentPoint.x, currentPoint.y, HORIZONTAL) == true){
+						this.objectCounter--;
+						break;
+					}
+					
+					if (TaskHolder.getTaskByIndex(this.index + 2).checkBorders(currentPoint.x, currentPoint.y, VERTICAL) == true){
+						this.objectCounter--;
+						break;
+					}
+				} else {
+					if (TaskHolder.getTaskByIndex(this.index + 1).checkBorders(currentPoint.x, currentPoint.y, VERTICAL) == true){
+						this.objectCounter--;
+						break;
+					}
+				}				
+			}
+		}
+		System.out.println("Final count: " + this.objectCounter);
+	}
+	
+	private boolean checkBorders(int x, int y, int orientation){
+		this.taskAcquire(this.communicationLock);
+		for (int i = 0; i < this.bordersList.size(); i++){
+			ArrayList<Point> currentList = this.bordersList.get(i); 
+			for (int j = 0; j < currentList.size(); j++){
+				Point currentPoint = currentList.get(j); 
+				if (orientation == HORIZONTAL) {
+					if(currentPoint.x == x && currentPoint.y == 0){
+						this.communicationLock.release();
+						return true;
+					}
+				} else {
+					if(currentPoint.x == 0 && currentPoint.y == y){
+						this.communicationLock.release();
+						return true;
+					}
+				}
+			}
+		}
+		this.communicationLock.release();
+		return false;
 	}
 	
 	public synchronized void sendCount()

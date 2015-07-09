@@ -1,6 +1,10 @@
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.Semaphore;
+
+import javax.imageio.ImageIO;
 
 public class MainTask extends Thread
 {
@@ -28,18 +32,17 @@ public class MainTask extends Thread
 		imageProcessor.CreateNewImage(0, 3071, 0, 1535);
 		smallImages = imageProcessor.DivideImage(imageProcessor.getFinalImage(), 3, 2);
 		for(int i = 0; i < TaskHolder.getTaskSize(); i++) {
-			// TODO - IMPROVE
-			if (i == 0) {
+			if (i == 1) {
 				sendImageRange(i, smallImages[0][1]);
-			} else if (i == 1) {
-				sendImageRange(i, smallImages[1][1]);
-			} else if (i == 2) {
-				sendImageRange(i, smallImages[2][1]);
 			} else if (i == 3) {
-				sendImageRange(i, smallImages[0][0]);
-			} else if (i == 4) {
-				sendImageRange(i, smallImages[1][0]);
+				sendImageRange(i, smallImages[1][1]);
 			} else if (i == 5) {
+				sendImageRange(i, smallImages[2][1]);
+			} else if (i == 0) {
+				sendImageRange(i, smallImages[0][0]);
+			} else if (i == 2) {
+				sendImageRange(i, smallImages[1][0]);
+			} else if (i == 4) {
 				sendImageRange(i, smallImages[2][0]);
 			}
 		}

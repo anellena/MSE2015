@@ -30,18 +30,18 @@ public class ChildTask extends Thread
 	
 	public void run()
 	{
-		System.out.println("Start ChildTask " + index);
+		//System.out.println("Start ChildTask " + index);
 		this.childAcquire(this.workingLock);
 		
-		this.saveFile();
+		//this.saveFile();
 		//This if is here for limiting to only, remove
-		if ((this.index == 0 || this.index == 1) && this.motherTaskIndex == 0){
+		//if ((this.index == 0 || this.index == 1) && this.motherTaskIndex == 0){
 			this.countChildTaskObjects();
-		}
+		//}
 		
-		if (this.index == 0 && this.motherTaskIndex == 0){
+		//if (this.index == 0 && this.motherTaskIndex == 0){
 			this.searchForObjectsOnOtherChildTasks();
-		}
+		//}
 		
 		sendCount();
 		//System.out.println("Ending ChildTask: " + index);
@@ -82,11 +82,11 @@ public class ChildTask extends Thread
 	
 	private void countChildTaskObjects(){
 		objectCounter = ImageProcessing.ObjectsCount(image, this.bordersList);
-		System.out.println("Counted " + objectCounter + " objects at task: " + index + " of mother " + this.motherTaskIndex);
-		for (int i = 0; i < this.bordersList.size(); i++){
-			System.out.println("Number of borders: " + this.bordersList.get(i).size());	
-		}
-		System.out.println(this.bordersList);
+		//System.out.println("Counted " + objectCounter + " objects at task: " + index + " of mother " + this.motherTaskIndex);
+		//for (int i = 0; i < this.bordersList.size(); i++){
+			//System.out.println("Number of borders: " + this.bordersList.get(i).size());	
+		//}
+		//System.out.println(this.bordersList);
 		
 		// We are ready to communicate with other threads
 		this.communicationLock.release();
@@ -109,18 +109,19 @@ public class ChildTask extends Thread
 	}
 	
 	private void searchForObjectsOnOtherChildTasks(){
-		System.out.println("Starting count: " + this.objectCounter);
+		//System.out.println("Task" + this.index + "Starting count: " + this.objectCounter);
 		for (int i = 0; i < this.bordersList.size(); i++){
 			ArrayList<Point> currentList = this.bordersList.get(i); 
 			for (int j = 0; j < currentList.size(); j++){
 				Point currentPoint = currentList.get(j);
+				if (this.index + 1 < (this.motherTaskIndex * 6) + 6)
 				if (TaskHolder.getChildTaskByIndex(this.index + 1).checkBorders(currentPoint.x) == true){
 					this.objectCounter--;
 					break;
 				}
 			}
 		}
-		System.out.println("Final count: " + this.objectCounter);
+	//	System.out.println("Task" + this.index + "Final count: " + this.objectCounter);
 	}
 	
 }

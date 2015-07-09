@@ -89,7 +89,7 @@ public class ImageProcessing
   	    	}
   	    }
   	  }
-	  System.out.println("The image has: " + count + "objects.");
+	  //System.out.println("The image has: " + count + "objects.");
 	  
 	  return count;
   }
