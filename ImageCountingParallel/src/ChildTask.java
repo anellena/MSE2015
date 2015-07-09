@@ -33,27 +33,23 @@ public class ChildTask extends Thread
 		//System.out.println("Start ChildTask " + index);
 		this.childAcquire(this.workingLock);
 		
-		//this.saveFile();
-		//This if is here for limiting to only, remove
-		//if ((this.index == 0 || this.index == 1) && this.motherTaskIndex == 0){
-			this.countChildTaskObjects();
-		//}
-		
-		//if (this.index == 0 && this.motherTaskIndex == 0){
-			this.searchForObjectsOnOtherChildTasks();
-		//}
+		this.saveFile();
+		this.countChildTaskObjects();
+		this.searchForObjectsOnOtherChildTasks();
 		
 		sendCount();
 		//System.out.println("Ending ChildTask: " + index);
 	}
 	
+	public ArrayList<ArrayList<Point>> getBorderList(){
+		return this.bordersList;
+	}
 	
-	public synchronized void sendCount()
-	{
+	public void sendCount(){
 		TaskHolder.getTaskByIndex(this.motherTaskIndex).receiveCount(this.index, this.objectCounter);
 	}
 	
-	public synchronized void receiveRange(BufferedImage finalImage)
+	public void receiveRange(BufferedImage finalImage)
 	{
 		this.image = finalImage;
 		this.workingLock.release();
@@ -83,10 +79,19 @@ public class ChildTask extends Thread
 	private void countChildTaskObjects(){
 		objectCounter = ImageProcessing.ObjectsCount(image, this.bordersList);
 		//System.out.println("Counted " + objectCounter + " objects at task: " + index + " of mother " + this.motherTaskIndex);
-		//for (int i = 0; i < this.bordersList.size(); i++){
+		/*for (int i = 0; i < this.bordersList.size(); i++){
+			for (int j = 0; j < this.bordersList.get(i).size(); j++){
+				Point currentPoint = this.bordersList.get(i).get(j);
+				if (currentPoint.y != 0){
+					this.bottomList.add(currentPoint);
+				}
+				if (currentPoint.x == 0 || currentPoint.x == this.image.getWidth()){
+					this.horizontalList.add(currentPoint);
+				}
+			}
 			//System.out.println("Number of borders: " + this.bordersList.get(i).size());	
-		//}
-		//System.out.println(this.bordersList);
+		}
+		//System.out.println(this.bordersList);*/
 		
 		// We are ready to communicate with other threads
 		this.communicationLock.release();
@@ -110,18 +115,19 @@ public class ChildTask extends Thread
 	
 	private void searchForObjectsOnOtherChildTasks(){
 		//System.out.println("Task" + this.index + "Starting count: " + this.objectCounter);
-		for (int i = 0; i < this.bordersList.size(); i++){
-			ArrayList<Point> currentList = this.bordersList.get(i); 
-			for (int j = 0; j < currentList.size(); j++){
-				Point currentPoint = currentList.get(j);
-				if (this.index + 1 < (this.motherTaskIndex * 6) + 6)
-				if (TaskHolder.getChildTaskByIndex(this.index + 1).checkBorders(currentPoint.x) == true){
-					this.objectCounter--;
-					break;
+		if ((this.index % 6) != 5){
+			for (int i = 0; i < this.bordersList.size(); i++){
+				ArrayList<Point> currentList = this.bordersList.get(i); 
+				for (int j = 0; j < currentList.size(); j++){
+					Point currentPoint = currentList.get(j);
+					if (currentPoint.y != 0 &&
+							TaskHolder.getChildTaskByIndex(this.index + 1).checkBorders(currentPoint.x) == true){
+						this.objectCounter--;
+						break;
+					}
 				}
 			}
 		}
-	//	System.out.println("Task" + this.index + "Final count: " + this.objectCounter);
+		//System.out.println("Task " + this.index + ". Final count: " + this.objectCounter);
 	}
-	
 }

@@ -15,18 +15,18 @@ public class Task extends Thread
 	private int taskCounter = 0;
 	private BufferedImage image;
 	private ImageProcessing imageProcessor;
-	private Semaphore workingLock, communicationLock;
+	private Semaphore workingLock, communicationLock, childrenDone;
 	final int HORIZONTAL = 0;
 	final int VERTICAL = 0;
-	private ArrayList<ArrayList<Point>> bordersList;
 
 	public Task(int index)
 	{
 		this.index = index;
-		this.bordersList = new ArrayList<ArrayList<Point>>();
 		this.workingLock = new Semaphore(1);
 		this.communicationLock = new Semaphore(1);
-		this.taskAcquire(workingLock);
+		this.childrenDone = new Semaphore(1);
+		this.taskAcquire(this.workingLock);
+		this.taskAcquire(this.childrenDone);
 	}
 	
 	public void run()
@@ -52,7 +52,7 @@ public class Task extends Thread
 			}
 		}
 		
-		int localCounter = imageProcessor.ObjectsCount(image, bordersList);
+		this.childrenDone.release();
 	    this.searchForObjectsOnOtherTasks();
 		
 		System.out.println("Counted " + objectCounter + " objects at task: " + index);
@@ -62,51 +62,61 @@ public class Task extends Thread
 	
 	private void searchForObjectsOnOtherTasks(){
 		//System.out.println("Starting count: " + this.objectCounter);
-		for (int i = 0; i < this.bordersList.size(); i++){
-			ArrayList<Point> currentList = this.bordersList.get(i); 
-			for (int j = 0; j < currentList.size(); j++){
-				Point currentPoint = currentList.get(j);
-				if (this.index%2 == 0) {
-					if (TaskHolder.getTaskByIndex(this.index + 1).checkBorders(currentPoint.x, currentPoint.y, HORIZONTAL) == true){
-						this.objectCounter--;
-						break;
+		for (int k = (this.index * 6); k < ((this.index * 6) + 6); k++) {
+			System.out.println("Starting search: " + k);
+			for (int i = 0; i < TaskHolder.getChildTaskByIndex(k).getBorderList().size(); i++){
+				ArrayList<Point> currentList = TaskHolder.getChildTaskByIndex(k).getBorderList().get(i); 
+				for (int j = 0; j < currentList.size(); j++){
+					Point currentPoint = currentList.get(j);
+					if (this.index < 5) {
+						if (this.index == 0 || this.index == 2 || this.index == 4) {
+							if (this.index != 4) {
+								if (TaskHolder.getTaskByIndex(this.index + 2).checkBorders(currentPoint.x, currentPoint.y, VERTICAL, k+12) == true){
+									this.objectCounter--;
+									break;
+								}	
+							}
+							
+							if (k == ((this.index * 6) + 5)) {
+								if (TaskHolder.getTaskByIndex(this.index + 1).checkBorders(currentPoint.x, currentPoint.y, HORIZONTAL, k+6) == true){
+									this.objectCounter--;
+									break;
+								}
+							}
+							
+						} else {
+							if (TaskHolder.getTaskByIndex(this.index + 1).checkBorders(currentPoint.x, currentPoint.y, HORIZONTAL, k+6) == true){
+								this.objectCounter--;
+								break;
+							}
+						}	
 					}
-					
-					if (TaskHolder.getTaskByIndex(this.index + 2).checkBorders(currentPoint.x, currentPoint.y, VERTICAL) == true){
-						this.objectCounter--;
-						break;
-					}
-				} else {
-					if (TaskHolder.getTaskByIndex(this.index + 1).checkBorders(currentPoint.x, currentPoint.y, VERTICAL) == true){
-						this.objectCounter--;
-						break;
-					}
-				}				
+				}
 			}
 		}
 		System.out.println("Final count: " + this.objectCounter);
 	}
 	
-	private boolean checkBorders(int x, int y, int orientation){
-		this.taskAcquire(this.communicationLock);
-		for (int i = 0; i < this.bordersList.size(); i++){
-			ArrayList<Point> currentList = this.bordersList.get(i); 
+	private boolean checkBorders(int x, int y, int orientation, int childIndex){
+		this.taskAcquire(this.childrenDone);
+		for (int i = 0; i < TaskHolder.getChildTaskByIndex(childIndex).getBorderList().size(); i++){
+			ArrayList<Point> currentList = TaskHolder.getChildTaskByIndex(childIndex).getBorderList().get(i); 
 			for (int j = 0; j < currentList.size(); j++){
 				Point currentPoint = currentList.get(j); 
 				if (orientation == HORIZONTAL) {
 					if(currentPoint.x == x && currentPoint.y == 0){
-						this.communicationLock.release();
+						this.childrenDone.release();
 						return true;
 					}
 				} else {
 					if(currentPoint.x == 0 && currentPoint.y == y){
-						this.communicationLock.release();
+						this.childrenDone.release();
 						return true;
 					}
 				}
 			}
 		}
-		this.communicationLock.release();
+		this.childrenDone.release();
 		return false;
 	}
 	
